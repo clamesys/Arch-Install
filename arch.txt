@@ -1,0 +1,119 @@
+timedatectl set-ntp true
+
+fdisk -l
+fdisk /dev/sda -l
+cfdisk /dev/sda
+
+/dev/sda1	EFI system		- atleast 500mb
+/dev/sda2	Linux filesystem	- needed as
+/dev/sda3	Swap			- needed as
+
+[write then quit]
+
+mkfs.ext4 /dev/sda2
+mkfs.fat -F 32 /dev/sda1
+mkswap /dev/sda3
+
+mount /dev/sda2 /mnt 			[temporary mount /mnt]
+#mount --mkdir /dev/sda1 /mnt/boot
+swapon /dev/sda3
+
+reflector				[check the mirrors]
+
+#reflector --download-timeout 60 --country India,Singapore --age 12 --protocol https
+
+#[will have to replace the mirrors in /etc/pacman.d/mirrorlist]
+#[make a copy first]
+
+#cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+
+reflector --download-timeout 60 --country India,Singapore --age 12 --protocol https --save /etc/pacman.d/mirrorlist
+
+[Update the package cache according to the new mirror list]
+
+pacman -Sy				[-S option means sync equivalent to install in apt]
+
+[Installation]
+
+pacman -S archlinux-keyring
+pacstrap /mnt base base-devel linux linux-firmware sudo nano networkmanager #ntfs-3g 
+
+[base – Minimal package set to define a basic Arch Linux installation.]
+[base-devel – Group of packages required for building software from source.]
+[linux – The kernel itself.]
+[linux-firmware – Drivers for common hardware.]
+[sudo – You want to run commands as root.]
+[nano – A pico editor clone with some enhancements.]
+[networkmanager – Provides detection and configuration for systems to automatically connect to networks.]
+#[ntfs-3g – NTFS filesystem driver and utilities required for working with NTFS drives.]
+
+[Installation Finished]
+
+[Generating Fstab File] [The fstab file can be used to define how disk partitions, various other block devices, or remote file systems should be mounted into the file system.]
+
+genfstab -U /mnt >> /mnt/etc/fstab
+
+[Login to The Newly Installed System]
+
+arch-chroot /mnt			[logs to newly installed system root]
+
+[Configure the Time Zone]
+
+ls /usr/share/zoneinfo
+ls /usr/share/zoneinfo/Asia
+ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime	[The ln command is used for creating symbolic links. The -sf options indicate soft and force]
+
+[Configuring hostname]
+
+nano /etc/hostname
+(write ur pcname)
+Ctrl+O , Ctrl+X
+
+nano /etc/hosts
+(127.0.0.1        localhost
+ ::1              localhost
+ 127.0.1.1        pcname   )
+Ctrl+O , Ctrl+X
+
+systemctl enable NetworkManager
+
+[Set the Root Password and user]
+
+passwd					[Sets the Root Password] ['dsen']
+
+useradd -m -G wheel dsen		[The useradd command lets you create a new user. Make sure to replace my name with the one you want to use. The -m option indicates that you also want it to create the corresponding home directory. The -G option will add the new user to the wheel group which is the administration user group in Arch Linux.]
+passwd dsen				['dsen']
+
+[Enable sudo privilege for user]
+
+nano /etc/sudoers
+(uncomment # %wheel ALL=(ALL) ALL )
+
+[Install Microcode]
+
+pacman -S amd-ucode			[for intel intel-ucode]
+
+[Install and Configure Boot Loader]
+
+pacman -S grub efibootmgr
+
+#pacman -S os-prober			[for installing aside other OS's]
+
+mkdir /boot/efi
+mount /dev/sda1 /boot/efi
+
+grub-install --target=x86_64-efi --bootloader-id=grub
+#nano /etc/default/grub
+#(uncomment #GRUB_DISABLE_OS_PROBER=false )
+grub-mkconfig -o /boot/grub/grub.cfg
+
+nano /boot/efi/startup.nsh
+(\EFI\grub\grubx64.efi)
+
+[At this point, you can exit the Arch-Chroot environment, unmount the partition, and reboot]
+exit
+umount -R /mnt				[unmount the root partition to make sure there are no pending operations]
+reboot
+
+#sudo pacman -S htop fish
+#pacman -S qtile lightdm lightdm-gtk-greeter sshd xorg

@@ -1,0 +1,39 @@
+timedatectl set-ntp true
+fdisk -l
+fdisk /dev/sda -l
+cfdisk /dev/sda
+mkfs.ext4 /dev/sda2
+mkfs.fat -F 32 /dev/sda1
+mkswap /dev/sda3
+mount /dev/sda2 /mnt
+swapon /dev/sda3
+reflector --download-timeout 60 --country India,Singapore --age 12 --protocol https --save /etc/pacman.d/mirrorlist
+pacman -Sy
+pacman -S archlinux-keyring
+pacstrap /mnt base base-devel linux linux-firmware sudo nano networkmanager #ntfs-3g 
+genfstab -U /mnt >> /mnt/etc/fstab
+arch-chroot /mnt
+ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+nano /etc/hostname
+	(write ur pcname)
+nano /etc/hosts
+	(127.0.0.1        localhost
+	 ::1              localhost
+	 127.0.1.1        pcname   )
+systemctl enable NetworkManager
+passwd
+useradd -m -G wheel dsen
+passwd dsen
+nano /etc/sudoers
+	(uncomment # %wheel ALL=(ALL) ALL )
+pacman -S amd-ucode
+pacman -S grub efibootmgr
+mkdir /boot/efi
+mount /dev/sda1 /boot/efi
+grub-install --target=x86_64-efi --bootloader-id=grub
+grub-mkconfig -o /boot/grub/grub.cfg
+nano /boot/efi/startup.nsh
+	(\EFI\grub\grubx64.efi)
+exit
+umount -R /mnt
+reboot
